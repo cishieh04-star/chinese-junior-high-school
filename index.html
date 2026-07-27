@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中國詩詞互動遊戲</title>
+    <style>
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { 
+            font-family: 'Microsoft JhengHei', sans-serif; padding: 20px; max-width: 600px; 
+            margin: auto; background-color: #fdf6e3; min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        
+        .box {
+            margin: 10px 0; border-radius: 15px;
+            font-weight: bold; text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* 1. 最大標題 */
+        .header-box { background: #d00837; color: #ffffff; font-size: 2.2rem; padding: 20px 40px; width: 100%; }
+        
+        /* 2. 黃底文字 (變大) */
+        .category-box { background: #ffe4b5; color: #5d4037; font-size: 1.4rem; padding: 10px 25px; border-radius: 20px; margin: 15px 0; }
+        
+        /* 3. 綠底按鈕 (縮小高度與字體) */
+        ul { 
+            list-style-type: none; padding: 0; margin: 10px 0 0 0; 
+            width: 100%; display: flex; flex-direction: column; 
+        }
+        li { display: flex; margin-bottom: 15px; }
+        
+        .game-link { 
+            background: #2e7d32; color: #ffffff; font-size: 1.2rem; 
+            cursor: pointer; width: 100%; min-height: 55px; padding: 10px;
+        }
+        a { text-decoration: none; color: inherit; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+
+    <div class="box header-box">詩詞互動遊戲</div>
+    <div class="category-box">請選擇下列詩詞遊戲單元</div>
+
+    <ul id="game-list"></ul>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const games = [
+                { name: "1.從軍行(王昌齡)(唐)", file: "join-army.html" },
+                { name: "2.秋夕(杜牧)(唐)", file: "autumn-night.html" },
+                { name: "3.送友人(李白)(唐)", file: "bidding-farewell.html" },
+                { name: "4.金縷衣(杜秋娘)(唐)", file: "golden-dress.html" },
+                
+            ];
+
+            const listElement = document.getElementById('game-list');
+            
+            games.forEach(game => {
+                const li = document.createElement('li');
+                li.innerHTML = '<div class="box game-link"><a href="' + game.file + '">' + game.name + '</a></div>';
+                listElement.appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>

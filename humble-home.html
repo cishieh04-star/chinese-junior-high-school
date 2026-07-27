@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>陋室銘文言文逐字隨機整排掉落遊戲</title>
+    <!-- 引入灑花特效庫 -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { 
+            background: linear-gradient(135deg, #fdfbf7, #fef3c7); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            padding: 10px; 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            overflow: hidden; 
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 550px;
+            max-height: 98vh;
+            background: #ffffff;
+            border: 4px solid #cbd5e1;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 15px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #home-screen, #game-ui { 
+            text-align: center; 
+            width: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+        }
+
+        /* 首頁說明樣式調整 */
+        #home-screen {
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .intro-box {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+            text-align: left;
+            width: 100%;
+            box-sizing: border-box;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+        .intro-box h3 {
+            margin: 5px 0;
+            font-size: 16px;
+            color: #b45309;
+        }
+        .intro-box p {
+            margin: 5px 0;
+            font-size: 13px;
+            color: #334155;
+            line-height: 1.4;
+        }
+        
+        #status-bar { 
+            display: flex; 
+            justify-content: space-around; 
+            width: 100%; 
+            font-size: 20px; 
+            font-weight: bold; 
+            color: #2c3e50; 
+            border-bottom: 2px solid #e2e8f0; 
+            padding-bottom: 8px; 
+            margin-bottom: 8px;
+        }
+        
+        #visual-area { 
+            height: 70px; 
+            width: 100%; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 6px; 
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px dashed #cbd5e1;
+            padding: 8px;
+            box-sizing: border-box;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+        }
+
+        .slot-box {
+            width: 38px;
+            height: 38px;
+            background: #e2e8f0;
+            border: 2px solid #94a3b8;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #16a34a;
+        }
+        .slot-box.filled {
+            background: #dcfce7;
+            border-color: #22c55e;
+        }
+        
+        #question { font-size: 24px; font-weight: bold; color: #b45309; margin: 6px 0; }
+        
+        .hint-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            min-height: 35px;
+            margin: 4px 0;
+        }
+
+        #hint-btn {
+            background-color: #f59e0b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            touch-action: manipulation;
+        }
+        #hint-btn:hover { background-color: #d97706; }
+
+        #feedback { font-size: 18px; color: #e67e22; font-weight: bold; }
+        
+        /* 掉落答案遊戲區域 */
+        #drop-game-container {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            background: #f1f5f9;
+            border: 3px solid #cbd5e1;
+            border-radius: 14px;
+            overflow: hidden;
+            box-sizing: border-box;
+            margin-top: 5px;
+        }
+
+        /* 呈一條線整排掉落的容器 (橫向排列整句的字) */
+        .falling-row {
+            position: absolute;
+            display: flex;
+            gap: 12px;
+            animation: fall linear forwards;
+            z-index: 10;
+        }
+
+        /* 掉落整排中的個別字方塊 */
+        .falling-char-in-row {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #fde047 60%, #eab308 100%);
+            border: 2px solid #ca8a04;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #78350f;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .falling-char-in-row:active { transform: scale(0.9); }
+
+        @keyframes fall {
+            0% { top: -65px; }
+            100% { top: 130px; }
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        button#start-btn, .control-btn { 
+            padding: 10px 25px; 
+            font-size: 18px; 
+            background: #3b82f6; 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            box-shadow: 0 4px 10px rgba(59,130,246,0.3);
+            font-weight: bold;
+            touch-action: manipulation;
+        }
+        button#start-btn:hover, .control-btn:hover { background: #2563eb; }
+        
+        #pause-btn {
+            background: #d97706;
+        }
+        #pause-btn:hover {
+            background: #b45309;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <!-- 首頁畫面 -->
+    <div id="home-screen">
+        <h1 style="font-size: 30px; color: #1e293b; margin: 5px 0;">📜 陋室銘文言文逐字連線冒險</h1>
+        
+        <!-- 新增的原文與白話翻譯對照區 -->
+        <div class="intro-box">
+            <h3>📖 文言文原文：</h3>
+            <p>山不在高，有仙則名。水不在深，有龍則靈。<br>
+            斯是陋室，惟吾德馨。<br>
+            苔痕上階綠，草色入簾青。<br>
+            談笑有鴻儒，往來無白丁。<br>
+            可以調素琴，閱金經。<br>
+            無絲竹之亂耳，無案牘之勞形。<br>
+            南陽諸葛廬，西蜀子雲亭。<br>
+            孔子云：何陋之有？</p>
+            
+            <h3 style="margin-top: 8px;">💡 白話翻譯對照：</h3>
+            <p>山不一定要高，只要有仙人居住，就會聞名天下；水不一定要深，只要有龍棲息，就會顯得神奇靈驗。<br>
+            這雖然是一間簡陋的小屋，卻因為住在其中的人品德高尚，而散發芬芳的美名。<br>
+            臺階上長滿翠綠的苔蘚，青翠的草色映進門簾。來往談笑的都是學問淵博、品德高雅的人，沒有粗俗無知的人。<br>
+            在這裡可以悠然地彈奏樸素的古琴，閱讀珍貴的經典書籍；沒有喧鬧的音樂擾亂耳朵，也沒有繁忙的公文使身心疲憊。<br>
+            這裡就像諸葛亮隱居南陽時的草廬，也像揚雄在西蜀著書立說的居所。正如孔子所說：「有高尚的德行，又有什麼簡陋可言呢？」</p>
+        </div>
+
+        <p style="color: #64748b; font-size: 14px; margin: 0 0 10px 0;">看上面的白話文，按順序點擊掉落的字來重組句子！</p>
+        <button id="start-btn">開始玩遊戲</button>
+    </div>
+
+    <!-- 遊戲中畫面 -->
+    <div id="game-ui" style="display:none;">
+        <div id="status-bar">
+            <div id="timer">時間: 00:00</div>
+            <div id="score">闖關: 0 / 18</div>
+        </div>
+        
+        <!-- 上方排排站區 -->
+        <div id="visual-area">請根據白話文，點擊掉落的字！</div>
+        <div id="question">白話文題目載入中...</div>
+        
+        <!-- 提示按鈕與訊息 -->
+        <div class="hint-container">
+            <button id="hint-btn">參考原文</button>
+            <div id="feedback">字掉下來囉！</div>
+        </div>
+        
+        <!-- 掉落答案區域 -->
+        <div id="drop-game-container"></div>
+
+        <!-- 暫停按鈕區 -->
+        <div class="btn-group">
+            <button id="pause-btn" class="control-btn">暫停遊戲</button>
+        </div>
+    </div>
+</div>
+
+    <script>
+        const idiomsData = [
+            { id: 1, classic: "山不在高", modern: "山不一定要高。" },
+            { id: 2, classic: "有仙則名", modern: "只要有仙人居住，就會聞名天下。" },
+            { id: 3, classic: "水不在深", modern: "水不一定要深。" },
+            { id: 4, classic: "有龍則靈", modern: "只要有龍棲息，就顯得神奇有靈氣。" },
+            { id: 5, classic: "斯是陋室", modern: "這雖然是一間簡陋的小屋。" },
+            { id: 6, classic: "惟吾德馨", modern: "卻因為我的品德高尚，而美名遠播。" },
+            { id: 7, classic: "苔痕上階綠", modern: "綠色的苔蘚爬上了臺階。" },
+            { id: 8, classic: "草色入簾青", modern: "青翠的草色映入門簾。" },
+            { id: 9, classic: "談笑有鴻儒", modern: "與我談笑往來的，都是學問淵博的人。" },
+            { id: 10, classic: "往來無白丁", modern: "沒有沒有學問、沒有修養的人。" },
+            { id: 11, classic: "可以調素琴", modern: "可以悠閒地彈奏樸素的古琴。" },
+            { id: 12, classic: "閱金經", modern: "也可以閱讀珍貴的經典書籍。" },
+            { id: 13, classic: "無絲竹之亂耳", modern: "沒有宴飲奏樂來擾亂耳朵。" },
+            { id: 14, classic: "無案牘之勞形", modern: "沒有繁忙的公文使身心疲累。" },
+            { id: 15, classic: "南陽諸葛廬", modern: "這裡就像諸葛亮在南陽隱居時的草廬。" },
+            { id: 16, classic: "西蜀子雲亭", modern: "又像揚雄在西蜀著書時的居所。" },
+            { id: 17, classic: "孔子云", modern: "孔子曾經說：" },
+            { id: 18, classic: "何陋之有", modern: "只要有高尚的品德，又有什麼簡陋可言呢？" }
+        ];
+
+        let currentIndex = 0;
+        let currentItem = null;
+        let score = 0;
+        let gameInterval = null;
+        let activeRows = [];
+        let isPaused = false;
+        let timerInterval = null;
+        let totalSeconds = 0; 
+        let audioCtx = null;
+
+        let targetChars = [];
+        let nextCharIndex = 0;
+
+        function playSuccessSound() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.15); 
+            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3);  
+            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.45); 
+
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.7);
+        }
+
+        function playErrorSound() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.3);
+        }
+
+        function initGame() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            document.getElementById('home-screen').style.display = 'none';
+            document.getElementById('game-ui').style.display = 'flex';
+            score = 0;
+            totalSeconds = 0;
+            isPaused = false;
+            currentIndex = 0;
+            
+            const pauseBtn = document.getElementById('pause-btn');
+            pauseBtn.innerText = "暫停遊戲";
+            pauseBtn.style.backgroundColor = "#d97706";
+
+            document.getElementById('score').innerText = `闖關: ${score} / 18`;
+            startTimer();
+            loadQuestion();
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isPaused) {
+                    totalSeconds++;
+                    let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+                    let s = (totalSeconds % 60).toString().padStart(2, '0');
+                    document.getElementById('timer').innerText = `時間: ${m}:${s}`;
+                }
+            }, 1000);
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            const pauseBtn = document.getElementById('pause-btn');
+            
+            if (isPaused) {
+                pauseBtn.innerText = "繼續遊戲";
+                pauseBtn.style.backgroundColor = "#16a34a";
+                document.getElementById('feedback').innerText = "⏸️ 遊戲已暫停";
+                activeRows.forEach(el => {
+                    el.style.animationPlayState = 'paused';
+                });
+            } else {
+                pauseBtn.innerText = "暫停遊戲";
+                pauseBtn.style.backgroundColor = "#d97706";
+                document.getElementById('feedback').innerText = "▶️ 遊戲繼續！";
+                activeRows.forEach(el => {
+                    el.style.animationPlayState = 'running';
+                });
+            }
+        }
+
+        function loadQuestion() {
+            if (gameInterval) clearInterval(gameInterval);
+            activeRows.forEach(el => el.remove());
+            activeRows = [];
+
+            if (currentIndex >= idiomsData.length) {
+                if (timerInterval) clearInterval(timerInterval);
+                document.getElementById('question').innerText = "🎉 恭喜通關全部測驗！";
+                document.getElementById('visual-area').innerHTML = "太棒了！你已經完全掌握陋室銘了！";
+                document.getElementById('feedback').innerText = `總共耗時: ${Math.floor(totalSeconds / 60)}分 ${totalSeconds % 60}秒`;
+                confetti({ particleCount: 300, spread: 120, origin: { y: 0.5 } });
+                playSuccessSound();
+                return;
+            }
+
+            currentItem = idiomsData[currentIndex];
+            targetChars = currentItem.classic.split('');
+            nextCharIndex = 0;
+            
+            document.getElementById('question').innerText = currentItem.modern;
+            updateVisualSlots();
+            document.getElementById('feedback').innerText = `整排字掉下來囉！請按順序點擊`;
+
+            gameInterval = setInterval(() => {
+                if (isPaused) return;
+                spawnFallingRow();
+            }, 3500);
+        }
+
+        function updateVisualSlots() {
+            let area = document.getElementById('visual-area');
+            area.innerHTML = '';
+            for (let i = 0; i < targetChars.length; i++) {
+                let box = document.createElement('div');
+                box.className = 'slot-box';
+                if (i < nextCharIndex) {
+                    box.classList.add('filled');
+                    box.innerText = targetChars[i];
+                } else {
+                    box.innerText = '_';
+                }
+                area.appendChild(box);
+            }
+        }
+
+        function showHint() {
+            if (!currentItem) return;
+            document.getElementById('feedback').innerText = `原文：${currentItem.classic}`;
+        }
+
+        function spawnFallingRow() {
+            const container = document.getElementById('drop-game-container');
+            const rowEl = document.createElement('div');
+            rowEl.className = 'falling-row';
+
+            let shuffledThisTime = [...targetChars].sort(() => Math.random() - 0.5);
+
+            shuffledThisTime.forEach(char => {
+                const charEl = document.createElement('div');
+                charEl.className = 'falling-char-in-row';
+                charEl.innerText = char;
+
+                let isCharHandled = false;
+                const handleCharSelect = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isPaused || isCharHandled) return;
+
+                    if (char === targetChars[nextCharIndex]) {
+                        isCharHandled = true;
+                        charEl.style.visibility = 'hidden'; 
+                        nextCharIndex++;
+                        updateVisualSlots();
+
+                        if (nextCharIndex >= targetChars.length) {
+                            score++;
+                            document.getElementById('score').innerText = `闖關: ${score} / 18`;
+                            document.getElementById('feedback').innerText = "🎉 太棒了！這句排對囉！";
+                            
+                            playSuccessSound();
+                            confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+
+                            clearInterval(gameInterval);
+                            activeRows.forEach(el => el.remove());
+                            activeRows = [];
+
+                            currentIndex++;
+                            setTimeout(() => {
+                                if (!isPaused) loadQuestion();
+                            }, 2500);
+                        } else {
+                            playSuccessSound();
+                        }
+                    } else {
+                        playErrorSound();
+                        document.getElementById('feedback').innerText = `❌ 順序不對喔！要找「${targetChars[nextCharIndex]}」`;
+                    }
+                };
+
+                charEl.addEventListener('click', handleCharSelect);
+                charEl.addEventListener('touchstart', handleCharSelect, { passive: false });
+
+                rowEl.appendChild(charEl);
+            });
+            
+            const randomX = Math.random() * (container.clientWidth - (targetChars.length * 62));
+            rowEl.style.left = Math.max(10, randomX) + 'px';
+
+            const duration = 5.0 + Math.random() * 1.5;
+            rowEl.style.animationDuration = duration + 's';
+
+            if (isPaused) {
+                rowEl.style.animationPlayState = 'paused';
+            }
+
+            rowEl.addEventListener('animationend', () => {
+                rowEl.remove();
+                activeRows = activeRows.filter(item => item !== rowEl);
+            });
+
+            container.appendChild(rowEl);
+            activeRows.push(rowEl);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const startBtn = document.getElementById('start-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const hintBtn = document.getElementById('hint-btn');
+
+            if (startBtn) {
+                startBtn.addEventListener('click', initGame);
+                startBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    initGame();
+                }, { passive: false });
+            }
+
+            if (pauseBtn) {
+                pauseBtn.addEventListener('click', togglePause);
+                pauseBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    togglePause();
+                }, { passive: false });
+            }
+
+            if (hintBtn) {
+                hintBtn.addEventListener('click', showHint);
+                hintBtn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    showHint();
+                }, { passive: false });
+            }
+        });
+    </script>
+</body>
+</html>
