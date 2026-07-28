@@ -65,7 +65,7 @@
             text-align: left;
             width: 100%;
             box-sizing: border-box;
-            max-height: 220px;
+            max-height: 200px;
             overflow-y: auto;
         }
         .intro-box h3 {
@@ -191,6 +191,7 @@
             color: #78350f;
             cursor: pointer;
             box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            touch-action: manipulation;
         }
         .falling-char-in-row:active { transform: scale(0.9); }
 
@@ -206,8 +207,8 @@
         }
 
         button#start-btn, .control-btn { 
-            padding: 10px 25px; 
-            font-size: 18px; 
+            padding: 12px 30px; 
+            font-size: 20px; 
             background: #3b82f6; 
             color: white; 
             border: none; 
@@ -232,9 +233,9 @@
 <div class="main-wrapper">
     <!-- 首頁畫面 -->
     <div id="home-screen">
-        <h1 style="font-size: 30px; color: #1e293b; margin: 5px 0;">📜 陋室銘文言文逐字連線冒險</h1>
+        <h1 style="font-size: 28px; color: #1e293b; margin: 5px 0;">📜 陋室銘文言文逐字連線冒險</h1>
         
-        <!-- 新增的原文與白話翻譯對照區 -->
+        <!-- 原文與白話翻譯對照區 -->
         <div class="intro-box">
             <h3>📖 文言文原文：</h3>
             <p>山不在高，有仙則名。水不在深，有龍則靈。<br>
@@ -321,57 +322,74 @@
         let nextCharIndex = 0;
 
         function playSuccessSound() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(350, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.15); 
+                osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3);  
+                osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.45); 
+
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.7);
+            } catch (e) {
+                console.log("Audio error:", e);
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-
-            osc.type = 'triangle';
-            osc.frequency.setValueAtTime(350, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(523.25, audioCtx.currentTime + 0.15); 
-            osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3);  
-            osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.45); 
-
-            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.7);
-
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.7);
         }
 
         function playErrorSound() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-            let osc = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                let osc = audioCtx.createOscillator();
+                let gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-            osc.frequency.setValueAtTime(200, audioCtx.currentTime);
-            osc.frequency.setValueAtTime(150, audioCtx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
 
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch (e) {
+                console.log("Audio error:", e);
+            }
         }
 
-        function initGame() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function initGame(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (err) {
+                console.log("AudioContext init error:", err);
             }
 
             document.getElementById('home-screen').style.display = 'none';
@@ -402,7 +420,11 @@
             }, 1000);
         }
 
-        function togglePause() {
+        function togglePause(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             isPaused = !isPaused;
             const pauseBtn = document.getElementById('pause-btn');
             
@@ -468,7 +490,11 @@
             }
         }
 
-        function showHint() {
+        function showHint(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             if (!currentItem) return;
             document.getElementById('feedback').innerText = `原文：${currentItem.classic}`;
         }
@@ -522,6 +548,7 @@
                     }
                 };
 
+                // 同時綁定 click 與 touchstart，確保 Asus、三星等各廠牌手機皆能完美觸控反應
                 charEl.addEventListener('click', handleCharSelect);
                 charEl.addEventListener('touchstart', handleCharSelect, { passive: false });
 
@@ -547,6 +574,7 @@
             activeRows.push(rowEl);
         }
 
+        // 確保 DOM 載入後完整雙重綁定所有觸控與點擊事件，解決部分 Android 瀏覽器（如三星、Asus）點擊無反應問題
         window.addEventListener('DOMContentLoaded', () => {
             const startBtn = document.getElementById('start-btn');
             const pauseBtn = document.getElementById('pause-btn');
@@ -554,26 +582,17 @@
 
             if (startBtn) {
                 startBtn.addEventListener('click', initGame);
-                startBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    initGame();
-                }, { passive: false });
+                startBtn.addEventListener('touchstart', initGame, { passive: false });
             }
 
             if (pauseBtn) {
                 pauseBtn.addEventListener('click', togglePause);
-                pauseBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    togglePause();
-                }, { passive: false });
+                pauseBtn.addEventListener('touchstart', togglePause, { passive: false });
             }
 
             if (hintBtn) {
                 hintBtn.addEventListener('click', showHint);
-                hintBtn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    showHint();
-                }, { passive: false });
+                hintBtn.addEventListener('touchstart', showHint, { passive: false });
             }
         });
     </script>
